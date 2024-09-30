@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>工安環保事件新聞說明稿快速編輯程式</title>
+    <style>
+        /* CSS 樣式 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .container {
+            flex: 1;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .result-container {
+            flex: 1;
+            padding: 20px;
+            border-top: 1px solid #ccc;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        .field-group {
+            margin-bottom: 15px;
+        }
+        .checkbox-group label {
+            display: block;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            font-size: 18px;
+            resize: none;
+        }
+        button {
+            margin-right: 10px;
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        /* 新增的樣式 */
+        #loadingMessage {
+            display: none;
+            margin-top: 10px;
+            color: green;
+            font-weight: bold;
+        }
+        /* 響應式設計 */
+        @media (min-width: 768px) {
+            body {
+                flex-direction: row;
+            }
+            .container {
+                width: 50%;
+                border-right: 1px solid #ccc;
+            }
+            .result-container {
+                width: 50%;
+                border-top: none;
+                border-left: 1px solid #ccc;
+            }
+            textarea {
+                height: calc(100% - 40px);
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>輸入資訊</h2>
+
+    <div class="field-group">
+        <label for="apiKey">請輸入 API Key：</label>
+        <input type="text" id="apiKey" placeholder="輸入您的 API Key">
+    </div>
+
+    <div class="field-group">
+        <label>現在時間：</label>
+        <span id="currentTime"></span>
+    </div>
+
+    <div class="field-group">
+        <label>地點或設備：</label>
+        <div class="checkbox-group" id="location">
+            <label><input type="checkbox" value="廠區"> 廠區</label>
+            <label><input type="checkbox" value="沙崙油庫"> 沙崙油庫</label>
+            <label><input type="checkbox" value="五股油庫"> 五股油庫</label>
+            <label><input type="checkbox" value="長途管線"> 長途管線</label>
+            <label><input type="checkbox" value="其它"> 其它</label>
+        </div>
+    </div>
+
+    <div class="field-group">
+        <label>原因：</label>
+        <div class="checkbox-group" id="reason">
+            <label><input type="checkbox" value="設備故障"> 設備故障</label>
+            <label><input type="checkbox" value="天然災害"> 天然災害</label>
+            <label><input type="checkbox" value="原因仍待查證中"> 原因仍待查證中</label>
+            <label><input type="checkbox" value="其它"> 其它</label>
+        </div>
+    </div>
+
+    <div class="field-group">
+        <label>目前的情況：</label>
+        <div class="checkbox-group" id="currentStatus">
+            <label><input type="checkbox" value="已成立緊急應變中心"> 已成立緊急應變中心</label>
+            <label><input type="checkbox" value="已排除"> 已排除</label>
+            <label><input type="checkbox" value="正在處理中"> 正在處理中</label>
+            <label><input type="checkbox" value="其它"> 其它</label>
+        </div>
+    </div>
+
+    <div class="field-group">
+        <label>處置方式：</label>
+        <div class="checkbox-group" id="actions">
+            <label><input type="checkbox" value="管線已關掉"> 管線已關掉</label>
+            <label><input type="checkbox" value="進行搶修中"> 進行搶修中</label>
+            <label><input type="checkbox" value="現場已佈設攔油索"> 現場已佈設攔油索</label>
+            <label><input type="checkbox" value="除油設備"> 除油設備</label>
+            <label><input type="checkbox" value="回收油料中"> 回收油料中</label>
+        </div>
+    </div>
+
+    <div class="field-group">
+        <label>補充說明：</label>
+        <div class="checkbox-group" id="additionalInfo">
+            <label><input type="checkbox" value="桃廠將以最快的速度復原"> 桃廠將以最快的速度復原</label>
+            <label><input type="checkbox" value="全力搶修以穩定供油"> 全力搶修以穩定供油</label>
+            <label><input type="checkbox" value="其它1"> 其它1</label>
+            <label><input type="checkbox" value="其它2"> 其它2</label>
+        </div>
+    </div>
+
+    <button id="localButton" onclick="generateLocal()">本地生成</button>
+    <button id="apiButtonOpenAI" onclick="generateWithAPI('openai')">使用 ChatGPT API 生成</button>
+    <button id="apiButtonPerplexity" onclick="generateWithAPI('perplexity')">使用 Perplexity API 生成</button>
+    <button id="apiButtonGemini" onclick="generateWithAPI('gemini')">使用 Gemini API 生成</button>
+
+    <!-- 新增的等待訊息 -->
+    <div id="loadingMessage">已送出，等待回應中⋯⋯</div>
+</div>
+
+<div class="result-container">
+    <h2>生成的新聞說明稿</h2>
+    <textarea id="resultText"></textarea>
+</div>
+
+<script>
+    // 獲取當前時間並顯示
+    function updateCurrentTime() {
+        const now = new Date();
+        const formattedTime = now.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+        document.getElementById('currentTime').innerText = formattedTime;
+    }
+    updateCurrentTime();
+
+    // 本地生成新聞稿的函數
+    function generateLocal() {
+        updateCurrentTime(); // 更新當前時間
+        const data = collectData();
+        const pressRelease = generatePressRelease(data);
+        document.getElementById('resultText').value = pressRelease;
+    }
+
+    // 使用不同的 API 生成新聞稿的函數
+    async function generateWithAPI(apiType) {
+        const apiKey = document.getElementById('apiKey').value.trim();
+        if (!apiKey) {
+            alert('請輸入有效的 API Key');
+            return;
+        }
+
+        // 禁用按鈕並顯示等待訊息
+        disableButtons(true);
+        document.getElementById('loadingMessage').style.display = 'block';
+
+        updateCurrentTime(); // 更新當前時間
+        const data = collectData();
+        const prompt = `請將下列資料，生成桃園煉油廠的工安環保事件新聞說明稿，請用懇切平穩，讓民眾安心放心的語氣，並在新聞稿中包含日期和時間：\n\n${JSON.stringify(data)}`;
+
+        try {
+            let generatedText = '';
+            if (apiType === 'openai') {
+                generatedText = await callOpenAIAPI(apiKey, prompt);
+            } else if (apiType === 'perplexity') {
+                generatedText = await callPerplexityAPI(apiKey, prompt);
+            } else if (apiType === 'gemini') {
+                generatedText = await callGeminiAPI(apiKey, prompt);
+            } else {
+                alert('未知的 API 類型');
+                return;
+            }
+            document.getElementById('resultText').value = generatedText;
+        } catch (error) {
+            alert('請求失敗，請檢查您的網絡連接和 API Key。');
+            console.error(error);
+        } finally {
+            // 啟用按鈕並隱藏等待訊息
+            disableButtons(false);
+            document.getElementById('loadingMessage').style.display = 'none';
+        }
+    }
+
+    // 禁用或啟用按鈕的函數
+    function disableButtons(disabled) {
+        document.getElementById('apiButtonOpenAI').disabled = disabled;
+        document.getElementById('apiButtonPerplexity').disabled = disabled;
+        document.getElementById('apiButtonGemini').disabled = disabled;
+        document.getElementById('localButton').disabled = disabled;
+    }
+
+    // 調用 OpenAI API 的函數
+    async function callOpenAIAPI(apiKey, prompt) {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                model: 'gpt-3.5-turbo', // 或 'gpt-4'，取決於您的權限
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,
+            }),
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+            throw new Error(`API 錯誤：${result.error.message}`);
+        } else {
+            return result.choices[0].message.content.trim();
+        }
+    }
+
+    // 調用 Perplexity API 的函數（需要您填寫具體實現）
+    async function callPerplexityAPI(apiKey, prompt) {
+        // TODO: 根據 Perplexity API 的文件，實現請求
+        // 以下是一個假設性的示例，實際情況可能不同
+        const response = await fetch('https://api.perplexity.ai/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                prompt: prompt,
+                // 其他必要的參數
+            }),
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+            throw new Error(`API 錯誤：${result.error.message}`);
+        } else {
+            return result.generated_text.trim();
+        }
+    }
+
+    // 調用 Gemini API 的函數（需要您填寫具體實現）
+    async function callGeminiAPI(apiKey, prompt) {
+        // TODO: 根據 Gemini API 的文件，實現請求
+        // 以下是一個假設性的示例，實際情況可能不同
+        const response = await fetch('https://api.gemini.com/v1/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                prompt: prompt,
+                // 其他必要的參數
+            }),
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+            throw new Error(`API 錯誤：${result.error.message}`);
+        } else {
+            return result.generated_text.trim();
+        }
+    }
+
+    // 收集表單數據的函數
+    function collectData() {
+        const currentTime = document.getElementById('currentTime').innerText;
+        const location = getCheckedValues('location');
+        const reason = getCheckedValues('reason');
+        const currentStatus = getCheckedValues('currentStatus');
+        const actions = getCheckedValues('actions');
+        const additionalInfo = getCheckedValues('additionalInfo');
+
+        return {
+            現在時間: currentTime,
+            地點或設備: location,
+            原因: reason,
+            目前的情況: currentStatus,
+            處置方式: actions,
+            補充說明: additionalInfo,
+        };
+    }
+
+    // 獲取選中的複選框值
+    function getCheckedValues(groupName) {
+        const checkboxes = document.getElementById(groupName).querySelectorAll('input[type="checkbox"]:checked');
+        return Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    // 根據收集的數據本地生成新聞稿，包含日期和時間
+    function generatePressRelease(data) {
+        let pressRelease = `【桃園煉油廠新聞說明稿】
+
+${data.現在時間}，於${data.地點或設備.join('、')}發生${data.原因.join('、')}。目前，${data.目前的情況.join('、')}。
+
+為了處理此次事件，我們已採取以下措施：${data.處置方式.join('、')}。
+
+${data.補充說明.join('。')}
+
+我們對此次事件給社會大眾帶來的困擾深表歉意，並將全力以赴，確保安全與環保。感謝各位的理解與支持。
+
+發布日期：${data.現在時間}
+`;
+
+        return pressRelease;
+    }
+</script>
+</body>
+</html>
