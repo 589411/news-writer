@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>緊急事件新聞說明稿編輯器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .container {
+            width: 45%;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-top: 10px;
+        }
+        input, select, textarea {
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #generatedNews {
+            width: 100%;
+            height: 300px;
+            margin-top: 20px;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>緊急事件資訊輸入</h2>
+        <form id="emergencyForm">
+            <label for="apiKey">API Key：</label>
+            <input type="text" id="apiKey" required>
+
+            <label for="currentTime">現在時間：</label>
+            <input type="datetime-local" id="currentTime" required>
+
+            <label>廠區：</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="location" value="沙崙油庫"> 沙崙油庫</label>
+                <label><input type="checkbox" name="location" value="五股油庫"> 五股油庫</label>
+                <label><input type="checkbox" name="location" value="長途管線"> 長途管線</label>
+                <label><input type="checkbox" name="location" value="其它"> 其它</label>
+            </div>
+
+            <label>原因：</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="cause" value="設備故障"> 設備故障</label>
+                <label><input type="checkbox" name="cause" value="天然災害"> 天然災害</label>
+                <label><input type="checkbox" name="cause" value="原因仍待查證中"> 原因仍待查證中</label>
+                <label><input type="checkbox" name="cause" value="其它"> 其它</label>
+            </div>
+
+            <label>目前的情況：</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="currentStatus" value="已成立緊急應變中心"> 已成立緊急應變中心</label>
+                <label><input type="checkbox" name="currentStatus" value="已排除"> 已排除</label>
+                <label><input type="checkbox" name="currentStatus" value="正在處理中"> 正在處理中</label>
+                <label><input type="checkbox" name="currentStatus" value="其它"> 其它</label>
+            </div>
+
+            <label>處置方式：</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="action" value="管線已關掉"> 管線已關掉</label>
+                <label><input type="checkbox" name="action" value="進行搶修中"> 進行搶修中</label>
+                <label><input type="checkbox" name="action" value="現場已佈設攔油索"> 現場已佈設攔油索</label>
+                <label><input type="checkbox" name="action" value="除油設備"> 除油設備</label>
+                <label><input type="checkbox" name="action" value="回收油料中"> 回收油料中</label>
+            </div>
+
+            <label>補充說明：</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="additionalInfo" value="桃廠將以最快的速度復原"> 桃廠將以最快的速度復原</label>
+                <label><input type="checkbox" name="additionalInfo" value="全力搶修以穩定供油"> 全力搶修以穩定供油</label>
+                <label><input type="checkbox" name="additionalInfo" value="其它1"> 其它1</label>
+                <label><input type="checkbox" name="additionalInfo" value="其它2"> 其它2</label>
+            </div>
+
+            <button type="submit" id="submitButton">送出</button>
+            <div id="loading" class="loading">處理中...</div>
+        </form>
+    </div>
+
+    <div class="container">
+        <h2>生成的新聞稿</h2>
+        <textarea id="generatedNews"></textarea>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('emergencyForm');
+            const currentTimeInput = document.getElementById('currentTime');
+            const generatedNewsTextarea = document.getElementById('generatedNews');
+            const submitButton = document.getElementById('submitButton');
+            const loadingDiv = document.getElementById('loading');
+
+            // 設置當前時間
+            const now = new Date();
+            currentTimeInput.value = now.toISOString().slice(0, 16);
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitButton.disabled = true;
+                loadingDiv.style.display = 'block';
+                generatedNewsTextarea.value = ''; // 清空之前的內容
+
+                const formData = new FormData(form);
+                let prompt = "請根據以下信息生成一份新聞說明稿：\n";
+                for (let [key, value] of formData.entries()) {
+                    if (key !== 'apiKey') {
+                        if (prompt.includes(key + ': ')) {
+                            prompt += value + ', ';
+                        } else {
+                            prompt += `${key}: ${value}\n`;
+                        }
+                    }
+                }
+
+                const apiKey = document.getElementById('apiKey').value;
+
+                // 模擬 API 調用
+                simulateAPICall(apiKey, prompt).then(response => {
+                    generatedNewsTextarea.value = response;
+                    submitButton.disabled = false;
+                    loadingDiv.style.display = 'none';
+                }).catch(error => {
+                    generatedNewsTextarea.value = "發生錯誤：" + error;
+                    submitButton.disabled = false;
+                    loadingDiv.style.display = 'none';
+                });
+            });
+
+            // 模擬 API 調用的函數
+            function simulateAPICall(apiKey, prompt) {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        if (apiKey === "valid_key") {
+                            const response = `這是根據您提供的信息生成的模擬新聞稿：
+
+                            ${prompt}
+
+                            [此處應為 Perplexity API 生成的實際新聞稿內容]`;
+                            resolve(response);
+                        } else {
+                            reject("無效的 API Key");
+                        }
+                    }, 2000);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
