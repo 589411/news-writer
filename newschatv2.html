@@ -56,6 +56,10 @@
             font-weight: bold;
             margin-top: 10px;
         }
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+        }
     </style>
 </head>
 <body>
@@ -109,7 +113,10 @@
                 <label><input type="checkbox" name="additionalInfo" value="其它2"> 其它2</label>
             </div>
 
-            <button type="submit" id="submitButton">送出</button>
+            <div class="button-group">
+                <button type="button" id="localButton">本地生成</button>
+                <button type="button" id="claudeButton">Claude 生成</button>
+            </div>
             <div id="loading" class="loading">處理中...</div>
         </form>
     </div>
@@ -124,19 +131,15 @@
             const form = document.getElementById('emergencyForm');
             const currentTimeInput = document.getElementById('currentTime');
             const generatedNewsTextarea = document.getElementById('generatedNews');
-            const submitButton = document.getElementById('submitButton');
+            const localButton = document.getElementById('localButton');
+            const claudeButton = document.getElementById('claudeButton');
             const loadingDiv = document.getElementById('loading');
 
             // 設置當前時間
             const now = new Date();
             currentTimeInput.value = now.toISOString().slice(0, 16);
 
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                submitButton.disabled = true;
-                loadingDiv.style.display = 'block';
-                generatedNewsTextarea.value = ''; // 清空之前的內容
-
+            function getFormData() {
                 const formData = new FormData(form);
                 let prompt = "請根據以下信息生成一份新聞說明稿：\n";
                 for (let [key, value] of formData.entries()) {
@@ -148,37 +151,76 @@
                         }
                     }
                 }
+                return prompt;
+            }
 
+            localButton.addEventListener('click', function() {
+                localButton.disabled = true;
+                claudeButton.disabled = true;
+                loadingDiv.style.display = 'block';
+                generatedNewsTextarea.value = '';
+
+                const prompt = getFormData();
+
+                // 本地生成邏輯
+                setTimeout(() => {
+                    const response = `這是本地生成的模擬新聞稿：\n\n${prompt}\n\n[此處為本地生成的新聞稿內容]`;
+                    generatedNewsTextarea.value = response;
+                    localButton.disabled = false;
+                    claudeButton.disabled = false;
+                    loadingDiv.style.display = 'none';
+                }, 1000);
+            });
+
+            claudeButton.addEventListener('click', function() {
+                localButton.disabled = true;
+                claudeButton.disabled = true;
+                loadingDiv.style.display = 'block';
+                generatedNewsTextarea.value = '';
+
+                const prompt = getFormData();
                 const apiKey = document.getElementById('apiKey').value;
 
-                // 模擬 API 調用
-                simulateAPICall(apiKey, prompt).then(response => {
+                // 調用 Claude Sonnet API
+                callClaudeAPI(apiKey, prompt).then(response => {
                     generatedNewsTextarea.value = response;
-                    submitButton.disabled = false;
+                    localButton.disabled = false;
+                    claudeButton.disabled = false;
                     loadingDiv.style.display = 'none';
                 }).catch(error => {
                     generatedNewsTextarea.value = "發生錯誤：" + error;
-                    submitButton.disabled = false;
+                    localButton.disabled = false;
+                    claudeButton.disabled = false;
                     loadingDiv.style.display = 'none';
                 });
             });
 
-            // 模擬 API 調用的函數
-            function simulateAPICall(apiKey, prompt) {
-                return new Promise((resolve, reject) => {
-                    setTimeout(() => {
-                        if (apiKey === "valid_key") {
-                            const response = `這是根據您提供的信息生成的模擬新聞稿：
-
-                            ${prompt}
-
-                            [此處應為 Perplexity API 生成的實際新聞稿內容]`;
-                            resolve(response);
-                        } else {
-                            reject("無效的 API Key");
-                        }
-                    }, 2000);
+            async function callClaudeAPI(apiKey, prompt) {
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey,
+                        'anthropic-version': '2023-06-01'
+                    },
+                    body: JSON.stringify({
+                        model: "claude-3-sonnet-20240229",
+                        max_tokens: 1024,
+                        messages: [
+                            {
+                                role: "user",
+                                content: prompt
+                            }
+                        ]
+                    })
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.content[0].text;
             }
         });
     </script>
