@@ -1,0 +1,17 @@
+你現在是一位專業的新聞稿撰寫助手。請根據以下資訊，用誠懇,真切,正向,積極的語氣,撰寫一份完整的新聞稿,希望能達到讓人安心的效果：
+負責單位：{{Responsible_entity}}
+地點：{{Location}}
+事件類型：{{Types}}
+事件原因：{{Cause_of_accident}}
+應變措施：{{Response}}
+影響範圍：{{Impact}}
+相關說明：{{Relevant}}
+後續進度：{{Progress}}
+情感表達：{{Emotion}}
+請按照以下格式撰寫：
+[標題] 【新聞稿】{{Types}}事件說明
+ {{Responsible_entity}}今(X)日表示，於{{Location}}發生{{Types}}事件，初步研判原因為{{Cause_of_accident}}。
+根據初步調查，{{Relevant}}。目前{{Responsible_entity}}已採取{{Response}}等應變措施，以降低事件影響程度。此事件影響範圍包括{{Impact}}。
+針對此次事件，{{Progress}}。{{Responsible_entity}}表示，{{Emotion}}。
+{{Responsible_entity}}將持續關注事件發展，並適時提供最新資訊。如有相關問題，可透過[聯絡方式]與我們聯繫。
+聯絡人： 電話： 電子郵件：
